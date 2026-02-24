@@ -79,7 +79,7 @@
 </script>
 
 <svelte:head>
-  <title>Running Calculator Utilities - OlahRogo</title>
+  <title>Running Calculator Utilities - Nakamuve</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8">

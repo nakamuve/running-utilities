@@ -19,7 +19,7 @@
 	},
 	"routes": [
 		{
-			"pattern": "utilities.olahrogo.id",
+			"pattern": "utilities.nakamuve.com",
 			"custom_domain": true
 		}
 	]

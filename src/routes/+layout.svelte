@@ -9,7 +9,7 @@
     <div class="container mx-auto px-4 py-6">
         <div class="flex justify-between items-center">
             <h1 class="text-3xl font-bold">
-                <a href="/">Olahrogo</a>
+                <a href="/">Nakamuve</a>
             </h1>
         </div>
     </div>
@@ -23,7 +23,7 @@
   <!-- Footer -->
   <footer class="footer footer-center p-4 bg-primary text-white">
     <div>
-      <p>Copyright © {new Date().getFullYear()} - Olahrogo</p>
+      <p>Copyright © {new Date().getFullYear()} - Nakamuve</p>
       <div class="flex gap-3 justify-center">
         <a href="https://utas.me/barebearfoot-gan" class="underline hover:text-secondary">Contact Us</a>
       </div>
