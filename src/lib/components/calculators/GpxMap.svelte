@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, onDestroy } from 'svelte';
 	import L from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
 	import type { TrackPoint, WayPoint } from '$lib/gpxUtils';
@@ -11,6 +11,13 @@
 	let map: L.Map | null = null;
 	let polyline: L.Polyline | null = null;
 	let isMounted = false;
+	let baseLayers: any = {};
+
+	onDestroy(() => {
+		if (map) {
+			map.remove();
+		}
+	});
 
 	onMount(() => {
 		isMounted = true;
@@ -28,10 +35,24 @@
 			scrollWheelZoom: false
 		});
 
-		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+			attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)',
+			maxZoom: 17
+		});
+
+		const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			attribution: '&copy; OpenStreetMap contributors',
 			maxZoom: 19
-		}).addTo(map);
+		});
+
+		topoLayer.addTo(map);
+
+		baseLayers = {
+			'OpenTopoMap': topoLayer,
+			'OpenStreetMap': osmLayer
+		};
+
+		L.control.layers(baseLayers, {}, { position: 'topright' }).addTo(map);
 
 		const colors = ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#F44336'];
 		const colorIndex = Math.floor(Math.random() * colors.length);
@@ -45,7 +66,7 @@
 		}).addTo(map);
 
 		const bounds = polyline.getBounds();
-		map!.fitBounds(bounds, { padding: [50, 50] });
+		map.fitBounds(bounds, { padding: [50, 50] });
 
 		if (wayPoints && wayPoints.length > 0) {
 			wayPoints.forEach((wp) => {
@@ -110,7 +131,7 @@
 		const bounds = polyline.getBounds();
 		map!.fitBounds(bounds, { padding: [50, 50] });
 
-		const markers = map!.eachLayer((layer: L.Layer) => {
+		map!.eachLayer((layer: L.Layer) => {
 			if (layer instanceof L.CircleMarker) {
 				map!.removeLayer(layer);
 			}
