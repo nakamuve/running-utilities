@@ -235,6 +235,7 @@
 					/>
 					<button
 						class="join-item btn btn-primary mt-2 md:mt-0"
+						class:btn-disabled={loading || !uploadedFile}
 						on:click={uploadAndAnalyzeFile}
 						disabled={loading || !uploadedFile}
 					>
@@ -349,7 +350,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each analysisResults.waypoints as waypoint}
+							{#each analysisResults.waypoints.sort((a, b) => a.distance_from_start - b.distance_from_start) as waypoint}
 								<tr class="hover">
 									<td class="bg-base-100 font-medium">
 										{waypoint.name || 'Unnamed'}
