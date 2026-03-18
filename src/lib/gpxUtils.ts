@@ -10,6 +10,7 @@ export interface WayPoint {
 	lon: number;
 	ele: number;
 	name: string;
+	distance_from_start: number;
 }
 
 export interface KilometerSegment {
@@ -25,6 +26,7 @@ export interface ElevationAnalysisResult {
 	filename?: string;
 	track_points?: TrackPoint[];
 	waypoints?: WayPoint[];
+	startingPoint?: TrackPoint | null;
 	km_segments: KilometerSegment[];
 	total_distance: number;
 	total_elevation_gain: number;
@@ -68,6 +70,7 @@ export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2
 export function parseGPXString(gpxString: string): {
 	trackPoints: TrackPoint[];
 	wayPoints: WayPoint[];
+	startingPoint: TrackPoint | null;
 } {
 	try {
 		const parser = new DOMParser();
@@ -165,8 +168,8 @@ export function parseGPXString(gpxString: string): {
 			const name = nameNode ? (nameNode.textContent || '').trim() : '';
 
 			if (lat !== 0 || lon !== 0) {
-				// Only add valid waypoints
-				wayPoints.push({ lat, lon, ele, name });
+				// Only add valid waypoints (distance will be calculated after track points)
+				wayPoints.push({ lat, lon, ele, name, distance_from_start: 0 });
 			}
 		}
 
@@ -176,7 +179,36 @@ export function parseGPXString(gpxString: string): {
 			);
 		}
 
-		return { trackPoints, wayPoints };
+		// Calculate distance from start for each waypoint
+		const startingPoint = trackPoints[0];
+		const wayPointsWithDistance = wayPoints.map((wp) => {
+			// Find the closest track point to this waypoint
+			let closestIdx = 0;
+			let minDist = Infinity;
+
+			for (let i = 0; i < trackPoints.length; i++) {
+				const dist = haversineDistance(trackPoints[i].lat, trackPoints[i].lon, wp.lat, wp.lon);
+				if (dist < minDist) {
+					minDist = dist;
+					closestIdx = i;
+				}
+			}
+
+			// Calculate cumulative distance up to the closest track point
+			let distance = 0;
+			for (let i = 1; i <= closestIdx; i++) {
+				distance += haversineDistance(
+					trackPoints[i - 1].lat,
+					trackPoints[i - 1].lon,
+					trackPoints[i].lat,
+					trackPoints[i].lon
+				);
+			}
+
+			return { ...wp, distance_from_start: Math.round(distance) };
+		});
+
+		return { trackPoints, wayPoints: wayPointsWithDistance, startingPoint };
 	} catch (error) {
 		console.error('Error parsing GPX file:', error);
 		throw new Error(
@@ -402,7 +434,7 @@ export function analyzeGpxElevation(
 	useSmoothing: boolean = true
 ): ElevationAnalysisResult {
 	try {
-		const { trackPoints, wayPoints } = parseGPXString(gpxString);
+		const { trackPoints, wayPoints, startingPoint } = parseGPXString(gpxString);
 
 		if (trackPoints.length < 2) {
 			return {
@@ -433,6 +465,7 @@ export function analyzeGpxElevation(
 
 		results.track_points = trackPoints;
 		results.waypoints = wayPoints;
+		results.startingPoint = startingPoint;
 
 		return results;
 	} catch (error) {

@@ -337,6 +337,33 @@
 				</div>
 			{/if}
 
+			<!-- Waypoints Table -->
+			{#if analysisResults.waypoints && analysisResults.waypoints.length > 0}
+				<h3 class="mb-4 text-lg font-semibold">Waypoints</h3>
+				<div class="mb-6 overflow-x-auto">
+					<table class="table-md table w-full border">
+						<thead class="bg-base-200 text-base-content">
+							<tr>
+								<th class="bg-base-300">Waypoint Name</th>
+								<th class="text-right">Distance from Start</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each analysisResults.waypoints as waypoint}
+								<tr class="hover">
+									<td class="bg-base-100 font-medium">
+										{waypoint.name || 'Unnamed'}
+									</td>
+									<td class="text-right">
+										{(waypoint.distance_from_start / 1000).toFixed(2)} km
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
+
 			<!-- Kilometer Breakdown -->
 			<h3 class="mb-4 text-lg font-semibold">Elevation Gain Per {getSegmentLabel()}</h3>
 
