@@ -5,6 +5,13 @@ export interface TrackPoint {
 	ele: number;
 }
 
+export interface WayPoint {
+	lat: number;
+	lon: number;
+	ele: number;
+	name: string;
+}
+
 export interface KilometerSegment {
 	km: string | number;
 	elevation_gain: number;
@@ -17,6 +24,7 @@ export interface KilometerSegment {
 export interface ElevationAnalysisResult {
 	filename?: string;
 	track_points?: TrackPoint[];
+	waypoints?: WayPoint[];
 	km_segments: KilometerSegment[];
 	total_distance: number;
 	total_elevation_gain: number;
@@ -57,7 +65,10 @@ export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2
 }
 
 // Parse GPX file and extract track points
-export function parseGPXString(gpxString: string): TrackPoint[] {
+export function parseGPXString(gpxString: string): {
+	trackPoints: TrackPoint[];
+	wayPoints: WayPoint[];
+} {
 	try {
 		const parser = new DOMParser();
 		const xmlDoc = parser.parseFromString(gpxString, 'text/xml');
@@ -122,13 +133,50 @@ export function parseGPXString(gpxString: string): TrackPoint[] {
 			}
 		}
 
+		// Extract waypoints/checkpoints
+		const wayPoints: WayPoint[] = [];
+		let wptNodes = xmlDoc.evaluate(
+			'//wpt | //gpx:wpt | //*[local-name()="wpt"]',
+			xmlDoc,
+			(prefix) => (prefix === 'gpx' ? 'http://www.topografix.com/GPX/1/1' : null),
+			XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+			null
+		);
+
+		for (let i = 0; i < wptNodes.snapshotLength; i++) {
+			const wpt = wptNodes.snapshotItem(i) as Element;
+			const lat = parseFloat(wpt.getAttribute('lat') || '0');
+			const lon = parseFloat(wpt.getAttribute('lon') || '0');
+
+			// Get elevation
+			const eleNode =
+				wpt.querySelector('ele') ||
+				wpt.querySelector('gpx\\:ele') ||
+				wpt.getElementsByTagName('ele')[0];
+
+			const ele = eleNode ? parseFloat(eleNode.textContent || '0') : 0;
+
+			// Get name - try different possible element names
+			const nameNode =
+				wpt.querySelector('name') ||
+				wpt.querySelector('gpx\\:name') ||
+				wpt.getElementsByTagName('name')[0];
+
+			const name = nameNode ? (nameNode.textContent || '').trim() : '';
+
+			if (lat !== 0 || lon !== 0) {
+				// Only add valid waypoints
+				wayPoints.push({ lat, lon, ele, name });
+			}
+		}
+
 		if (trackPoints.length < 2) {
 			throw new Error(
 				'Not enough track points found in the GPX file. Ensure your file contains valid track points.'
 			);
 		}
 
-		return trackPoints;
+		return { trackPoints, wayPoints };
 	} catch (error) {
 		console.error('Error parsing GPX file:', error);
 		throw new Error(
@@ -354,7 +402,7 @@ export function analyzeGpxElevation(
 	useSmoothing: boolean = true
 ): ElevationAnalysisResult {
 	try {
-		const trackPoints = parseGPXString(gpxString);
+		const { trackPoints, wayPoints } = parseGPXString(gpxString);
 
 		if (trackPoints.length < 2) {
 			return {
@@ -384,6 +432,7 @@ export function analyzeGpxElevation(
 		}
 
 		results.track_points = trackPoints;
+		results.waypoints = wayPoints;
 
 		return results;
 	} catch (error) {

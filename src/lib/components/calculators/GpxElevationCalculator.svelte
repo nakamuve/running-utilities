@@ -329,7 +329,11 @@
 			{#if analysisResults.track_points && analysisResults.track_points.length > 0}
 				<h3 class="mb-4 text-lg font-semibold">Route Map</h3>
 				<div class="mb-6">
-					<GpxMap trackPoints={analysisResults.track_points} height="500px" />
+					<GpxMap
+						trackPoints={analysisResults.track_points}
+						wayPoints={analysisResults.waypoints || []}
+						height="500px"
+					/>
 				</div>
 			{/if}
 
